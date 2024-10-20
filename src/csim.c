@@ -347,6 +347,13 @@ static void edit_reset (gpointer callback_data,
 }
 
 
+static void mcard_insert_card (gpointer callback_data,
+                        guint    callback_action,  // 1=new 0=existing
+			GtkWidget *widget UNUSED)
+{
+}
+
+
 static uint8_t get_port_mask (sim_t *sim)
 {
   int port;
@@ -365,8 +372,8 @@ static void set_menu_enable (csim_t *csim,
 {
   GtkWidget *menu_item;
 
-  menu_item = gtk_item_factory_get_widget (csim->main_menu_item_factory, path);
-  gtk_widget_set_sensitive (GTK_WIDGET (menu_item), enable);
+  if ((menu_item = gtk_item_factory_get_widget (csim->main_menu_item_factory, path)) != NULL)
+    gtk_widget_set_sensitive (GTK_WIDGET (menu_item), enable);
 }
 
 
@@ -614,6 +621,9 @@ static GtkItemFactoryEntry menu_items [] =
     { "/_Configure",    NULL,         NULL,          0, "<Branch>", 0 },
     { "/Configure/Load Module", NULL, configure_load_module, 1, "<Item>", 0 },
     { "/Configure/Unload Module", NULL, configure_unload_module, 1, "<Item>", 0 },
+    { "/_MCard",    NULL,         NULL,          0, "<Branch>", 0 },
+    { "/MCard/Insert card...", NULL, mcard_insert_card, 0, "<Item>", 0 },
+    { "/MCard/Insert new card...", NULL, mcard_insert_card, 1, "<Item>", 0 },
 #ifdef HAS_DEBUGGER
     { "/_Debug",        NULL,         NULL,          0, "<Branch>", 0 },
 #endif
@@ -702,6 +712,12 @@ void set_default_state_path (csim_t *csim)
   const char *model_name;
 
   model_name = calcdef_get_model_name (sim_get_calcdef (csim->sim));
+
+  // Only 65, 67, 97 (and may be 41) has a magnetic card reader/writer
+  if (model_name != NULL && strstr("65/67/97/41c/41cv/41cx", model_name) == NULL)
+    gtk_container_remove (GTK_CONTAINER (csim->menubar),
+			  gtk_item_factory_get_item (csim->main_menu_item_factory,
+						     "/MCard")); 
 
   p = g_get_home_dir ();
   strcpy (csim->state_fn, p);
